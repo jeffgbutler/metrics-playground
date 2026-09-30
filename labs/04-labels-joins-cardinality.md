@@ -67,7 +67,8 @@ sum by (job) (scrape_samples_scraped)
 count by (__name__) ({job="cart"})
 ```
 
-and open http://localhost:9090/tsdb-status (top metrics by series count, top label names by value count).
+and open [TSDB status](http://localhost:9090/tsdb-status){: data-link="prometheus" data-path="/tsdb-status" }
+(top metrics by series count, top label names by value count).
 
 ```bash
 docker compose exec simulator metricsim trigger cardinality_explosion --duration 15m
@@ -94,9 +95,10 @@ docker compose exec simulator metricsim trigger cardinality_explosion --duration
 docker compose exec simulator metricsim trigger traffic_surge --duration 20m --param mult=4   # new customers arrive faster
 ```
 
-Watch `scrape_samples_scraped{job="cart"}` climb toward 10000, then `up{job="cart"}` drop to **0**. The error on
-http://localhost:9090/targets says why. You've lost *every* metric from cart, including CPU and memory, not just the
-high-cardinality ones. The protection works, and it takes the whole target with it.
+Watch `scrape_samples_scraped{job="cart"}` climb toward 10000, then `up{job="cart"}` drop to **0**. The error on the
+[targets page](http://localhost:9090/targets){: data-link="prometheus" data-path="/targets" } says why.
+You've lost *every* metric from cart, including CPU and memory, not just the high-cardinality ones. The protection
+works, and it takes the whole target with it.
 
 ## 3. Cardinality: Honeycomb
 

@@ -16,7 +16,8 @@ sum by (instance) (rate(http_requests_total{job="api-gateway"}[1m]))   # survivi
 ALERTS{alertname="TargetDown"}                              # pending first, firing after `for: 1m`
 ```
 
-On http://localhost:9090/targets the errors say `connection refused`. The simulator really closes those sockets.
+On the [targets page](http://localhost:9090/targets){: data-link="prometheus" data-path="/targets" }
+the errors say `connection refused`. The simulator really closes those sockets.
 
 When the host comes back (5 min), look at `node_boot_time_seconds{instance="node-c"}` and at the node's counters.
 It rebooted, so everything on it starts from zero.

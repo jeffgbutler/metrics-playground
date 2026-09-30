@@ -24,8 +24,8 @@ Read these in a browser at **http://localhost:8081** (linked from the control UI
 * `docker compose up -d --build` and let it run **at least 15 minutes** before lab 01. An hour is better for lab 07
   (one full simulated day of traffic).
 * Stop everything between labs so scenarios don't overlap: `docker compose exec simulator metricsim stop all`.
-* Grafana **Explore** (compass icon) is the best place to type PromQL. Prometheus's own UI at
-  http://localhost:9090/query is plainer but shows warnings and "info" annotations Grafana hides. Use both.
+* Grafana **Explore** (compass icon) is the best place to type PromQL. [Prometheus's own UI](http://localhost:9090/query){: data-link="prometheus" data-path="/query" }
+  is plainer but shows warnings and "info" annotations Grafana hides. Use both.
 * In Honeycomb, pick the environment your ingest key points at. All the playground's metrics land in one metrics
   store. Every data point carries a resource attribute **`collection.method`** that tells you which road it took:
   `prometheus-scrape`, `prometheus-federate`, `otlp-push` or `hostmetrics`. Most Honeycomb steps in the labs start

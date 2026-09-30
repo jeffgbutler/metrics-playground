@@ -55,7 +55,8 @@ docker compose exec simulator metricsim trigger bad_buckets --duration 12m --par
 ```
 
 Only `catalog-1` gets different bucket boundaries (0.02, 0.04, 0.08, 0.3, ...). Run the same p99 query in the
-Prometheus UI (http://localhost:9090/query, not Grafana), and read the **info** annotation under the result. Then:
+[Prometheus UI](http://localhost:9090/query){: data-link="prometheus" data-path="/query" }
+(not Grafana), and read the **info** annotation under the result. Then:
 
 ```promql
 sum by (le) (rate(http_request_duration_seconds_bucket{job="catalog"}[5m]))

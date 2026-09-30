@@ -45,9 +45,9 @@ predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[10m], 3600)   # bytes
 (node_filesystem_avail_bytes{mountpoint="/"}) / -deriv(node_filesystem_avail_bytes{mountpoint="/"}[10m]) / 60   # minutes left
 ```
 
-Watch `DiskWillFillWithin1h` on http://localhost:9090/alerts. When the disk is full, `pg_up` goes to 0 while
-`up{job="postgres"}` stays 1: the exporter is fine, the database it watches is not. Then errors spread to every
-service that writes (checkout, payments, inventory).
+Watch `DiskWillFillWithin1h` on the [alerts page](http://localhost:9090/alerts){: data-link="prometheus" data-path="/alerts" }.
+When the disk is full, `pg_up` goes to 0 while `up{job="postgres"}` stays 1: the exporter is fine, the database it
+watches is not. Then errors spread to every service that writes (checkout, payments, inventory).
 
 Also compare `node_filesystem_avail_bytes` with `node_filesystem_free_bytes`. The difference is the 5% ext4
 keeps for root. Which one should your alert use?
