@@ -22,13 +22,13 @@ Start with the lab workbook at http://localhost:8081 once the stack is up (or re
                          └───┬───────────────────────┬────────────────────┬───────┘
                    scrape /metrics             scrape /metrics      OTLP push (SDK)
                          │                           │                    │
-                  ┌──────▼──────┐   /federate  ┌─────▼────────────────────▼──────┐
-  node-exporter ─►│ Prometheus  │─────────────►│        OTel Collector           │
-  cAdvisor ──────►│   :9090     │              │ metrics/scrape      collection.method=prometheus-scrape
-                  └──────┬──────┘              │ metrics/federate    collection.method=prometheus-federate
-                         │                     │ metrics/otlp        collection.method=otlp-push
-                  ┌──────▼──────┐              │ metrics/hostmetrics collection.method=hostmetrics
-                  │  Grafana    │              └────────────────────────┬─────────────────────────────┘
+                  ┌──────▼──────┐   /federate  ┌─────▼────────────────────▼────────────────────────────────┐
+  node-exporter ─►│ Prometheus  │─────────────►│                   OTel Collector                          │
+  cAdvisor ──────►│   :9090     │              │ metrics/scrape      collection.method=prometheus-scrape   |
+                  └──────┬──────┘              │ metrics/federate    collection.method=prometheus-federate |
+                         │                     │ metrics/otlp        collection.method=otlp-push           |
+                  ┌──────▼──────┐              │ metrics/hostmetrics collection.method=hostmetrics         |
+                  │  Grafana    │              └────────────────────────┬──────────────────────────────────┘
                   │   :3000     │                                       ▼
                   └─────────────┘                          Honeycomb (one metrics store)
 ```
