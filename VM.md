@@ -59,6 +59,8 @@ Edit `.env`:
 
 ```bash
 HONEYCOMB_API_KEY=...                                # ingest key for the environment you want the data in
+HONEYCOMB_CONFIG_KEY=...                             # optional: configuration key with "Manage Markers", so scenario
+                                                     # starts/ends and deploys/rollbacks show up as Honeycomb markers
 PLAYGROUND_REGISTRY=harbor.jbcodes.net/library       # pull the two images instead of building them
 PLAYGROUND_TAG=0.1.0
 PLAYGROUND_BIND=0.0.0.0                              # listen on the VM's network interface, not just localhost
