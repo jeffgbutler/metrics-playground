@@ -5,7 +5,7 @@
 #   http://localhost:3000   Grafana (no login)
 #   http://localhost:9090   Prometheus
 #   http://localhost:55679/debug/pipelinez   collector zPages
-#   http://localhost:9101/metrics ...        raw exposition of every simulated process (9101-9118, 9201-9213)
+#   http://localhost:9101/metrics ...        raw exposition of every simulated process (9101-9118, 9201-9214)
 #
 # Ports are published on PLAYGROUND_BIND (default 127.0.0.1 = this machine only). On a VM, set it in .env to the
 # interface you want to reach the playground on. Nothing here has authentication - see VM.md.
@@ -33,7 +33,7 @@ services:
     ports:
       - "${PLAYGROUND_BIND:-127.0.0.1}:8080:8080"
       - "${PLAYGROUND_BIND:-127.0.0.1}:9101-9118:9101-9118"
-      - "${PLAYGROUND_BIND:-127.0.0.1}:9201-9213:9201-9213"
+      - "${PLAYGROUND_BIND:-127.0.0.1}:9201-9214:9201-9214"
 
   docs:
     build: ./docs-server

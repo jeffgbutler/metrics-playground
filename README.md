@@ -17,7 +17,7 @@ Start with the lab workbook at http://localhost:8081 once the stack is up (or re
                          │  Byte Mart: 9 services, 18 instances, 4 hosts          │
                          │  + postgres / redis / kafka exporters                  │
                          │  one port per process:  :9101-9118 apps                │
-                         │                         :9201-9213 infra               │
+                         │                         :9201-9214 infra               │
                          │  :8080 control UI + HTTP service discovery             │
                          └───┬───────────────────────┬────────────────────┬───────┘
                    scrape /metrics             scrape /metrics      OTLP push (SDK)

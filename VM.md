@@ -23,7 +23,7 @@ The VM's DNS name is `docker.jbcodes.net`; substitute another name if it ever mo
 * Outbound HTTPS to `harbor.jbcodes.net`, `github.com` and `api.honeycomb.io`.
 * A synced clock (chrony / systemd-timesyncd). Every metric is timestamped, and lab 06 plays with clock skew on
   purpose, so the host's own clock needs to be right.
-* Free ports 3000, 8080, 8081, 9090, 9101–9118, 9201–9213, 4317, 4318, 8888, 13133, 55679.
+* Free ports 3000, 8080, 8081, 9090, 9101–9118, 9201–9214, 4317, 4318, 8888, 13133, 55679.
 
 ## 1. Publish the images and push the repo (on your Mac)
 
