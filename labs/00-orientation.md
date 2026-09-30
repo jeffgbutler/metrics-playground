@@ -7,7 +7,15 @@ Honeycomb collection methods.
 
 ```bash
 curl -s localhost:9110/metrics      # checkout-1 (the control UI lists every port)
+curl -s localhost:9112/metrics      # payments-1 (only for the last row of the table)
 ```
+
+Every row below is in the checkout-1 output except the last, which is only on payments-1.
+
+`# HELP` and `# TYPE` describe a metric *family*, not a line. A counter or gauge family is one line per label set.
+A histogram family `foo` is written as `foo_bucket`, `foo_sum` and `foo_count` lines. A summary family `foo` is
+`foo_sum`, `foo_count` and optionally `foo{quantile="..."}` lines. So the name in `# TYPE` often isn't on any
+sample line, and `foo_count` has no HELP of its own.
 
 Find each of these and say what type it is and what one sample means:
 
@@ -15,10 +23,10 @@ Find each of these and say what type it is and what one sample means:
 |---|---|
 | `http_requests_total{...}` | Is this "requests in the last 15 s" or "since the process started"? |
 | `http_request_duration_seconds_bucket{...,le="0.25"}` | What does the number count? Why is `le="+Inf"` equal to `_count`? |
-| `jvm_gc_pause_seconds_count` / `jvm_gc_pause_seconds_max` | One is a counter, one is a gauge. Which, and what window does `_max` cover? |
+| `jvm_gc_pause_seconds_count` / `jvm_gc_pause_seconds_max` | `# TYPE` says `jvm_gc_pause_seconds` is a *summary*, yet it has no quantile lines (Micrometer's default), only `_sum`/`_count`. `_max` is a separate *gauge* family Micrometer adds alongside it. Does `_count` behave like a counter or a gauge? What window does `_max` cover (read its HELP)? |
 | `jvm_memory_max_bytes{id="G1 Eden Space"}` | Why `-1`? What happens if you divide by it? |
 | `app_build_info{...} 1` | Why would anyone expose a metric whose value is always 1? (Lab 04) |
-| `payment_provider_latency_seconds{quantile="0.99"}` on `:9112` (payments-1) | This is a *summary*. Where was the quantile computed? |
+| `payment_provider_latency_seconds{quantile="0.99"}` (**payments-1, `:9112`**) | This is a *summary*, like `jvm_gc_pause_seconds`, but with quantile lines. Where was the quantile computed? |
 
 Now compare runtimes: `:9101` (frontend, Node), `:9104` (api-gateway, Go), `:9108` (cart, Python). Same concepts,
 different names: `nodejs_heap_size_used_bytes` vs `go_memstats_heap_alloc_bytes`. Notice
