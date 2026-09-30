@@ -38,17 +38,31 @@ for lab 05.
 
 ## 2. How Prometheus finds targets
 
-Open http://localhost:9090/targets and expand `sim-apps`. Then:
+Open the [Prometheus targets page, filtered to checkout-1](http://localhost:9090/targets?pool=sim-apps&search=checkout-1){: data-link="prometheus" data-path="/targets?pool=sim-apps&search=checkout-1" }
+(the same as picking `sim-apps` in the scrape-pool selector and typing `checkout-1` in the filter box).
+
+The **Endpoint** links on this page don't open, and that's expected. Each link is the URL Prometheus scrapes from
+inside the Docker network, built from the discovered `__scheme__`, `__address__` and `__metrics_path__` labels, and
+`simulator` only resolves there. To
+see the same page yourself, swap in `localhost`: `http://simulator:9110/metrics` is `localhost:9110/metrics`, the
+page you read in section 1.
+
+Then:
 
 ```bash
-curl -s localhost:8080/sd/apps | python3 -m json.tool | head -20
+curl -s localhost:8080/sd/apps | python3 -c 'import json, sys; print(json.dumps([t for t in json.load(sys.stdin) if t["labels"]["__meta_instance"] == "checkout-1"], indent=2))'
 ```
 
-The simulator's HTTP service discovery returns `simulator:9110` (checkout-1) plus labels like `__meta_service`. In
+The simulator's HTTP service discovery returns one entry per instance, 18 in all
+(`curl -s localhost:8080/sd/apps | python3 -m json.tool` shows every one). The one above is `simulator:9110`
+(checkout-1) plus labels like `__meta_service`. In
 [prometheus/prometheus.yml](../prometheus/prometheus.yml), `relabel_configs` copy those into `job`, `instance`,
 `node`, `team`, `runtime`. Anything still starting with `__` afterwards is dropped.
 
-* On the targets page, hover a target's labels: "Discovered labels" vs "Target labels". Which labels did relabeling create?
+* On the targets page, the chips under **Labels** are the *target labels*, after relabeling. Click the small
+  chevron to the right of the chips to expand **Discovered labels**: what service discovery returned, before
+  relabeling. Which labels did relabeling create? Discovered `job` is `sim-apps` (the scrape pool); what did it
+  become, and which rule did that?
 * Every series from `checkout-1` now carries `node="node-a"`. Why is that useful when a host misbehaves (lab 07)?
 
 ## 3. Prometheus writes metrics about scraping
