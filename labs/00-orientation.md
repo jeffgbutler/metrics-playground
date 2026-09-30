@@ -138,5 +138,8 @@ just show `(No Value)`. The attribute list tells you nothing about a metric. The
     * `http_requests_in_flight` → `http.server.active_requests` (`{request}`)
     * `order_value_dollars` → `shop.order.value` (`USD`)
 
+    In Honeycomb, a metrics query has a **Details** card that shows a metric's unit. Open it for
+    `process.memory.usage` and for `process_resident_memory_bytes`. What does each one say?
+
     What does each convention make easy or hard? Think about reading a query without its metadata, about
     renaming a metric when its unit changes, and about writing one Honeycomb query that covers both paths.
