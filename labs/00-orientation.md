@@ -6,11 +6,12 @@ Honeycomb collection methods.
 ## 1. Read an exposition
 
 ```bash
-curl -s localhost:9110/metrics      # checkout-1 (the control UI lists every port)
-curl -s localhost:9112/metrics      # payments-1 (only for the last row of the table)
+curl -s localhost:9110/metrics      # checkout-1
+curl -s localhost:9112/metrics      # payments-1
 ```
 
-Every row below is in the checkout-1 output except the last, which is only on payments-1.
+Every row below is in the checkout-1 output except the last, which is only on payments-1. (The control UI lists
+every instance's port.)
 
 `# HELP` and `# TYPE` describe a metric *family*, not a line. A counter or gauge family is one line per label set.
 A histogram family `foo` is written as `foo_bucket`, `foo_sum` and `foo_count` lines. A summary family `foo` is
@@ -50,7 +51,11 @@ page you read in section 1.
 Then:
 
 ```bash
-curl -s localhost:8080/sd/apps | python3 -c 'import json, sys; print(json.dumps([t for t in json.load(sys.stdin) if t["labels"]["__meta_instance"] == "checkout-1"], indent=2))'
+curl -s localhost:8080/sd/apps | python3 -c '
+import json, sys
+for t in json.load(sys.stdin):
+    if t["labels"]["__meta_instance"] == "checkout-1":
+        print(json.dumps(t, indent=2))'
 ```
 
 The simulator's HTTP service discovery returns one entry per instance, 18 in all

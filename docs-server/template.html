@@ -64,8 +64,12 @@ ul.dir { list-style: none; padding: 0; } ul.dir li { padding: 3px 0; font-family
 .btn { font: 12px ui-sans-serif, system-ui, sans-serif; background: var(--btn); color: var(--btn-ink); border: 1px solid #44464c;
   border-radius: 5px; padding: 2px 8px; cursor: pointer; white-space: nowrap; text-decoration: none; }
 .btn:hover { background: #3b3e45; text-decoration: none; }
-pre .copy { position: absolute; top: 8px; right: 8px; opacity: 0.6; }
-pre:hover .copy { opacity: 1; }
+/* other code blocks: the copy button sits in its own column so it never covers scrolled text */
+.cblock { display: flex; align-items: flex-start; gap: 8px; background: var(--pre-bg); border-radius: 8px; margin: 12px 0;
+  padding-right: 8px; }
+.cblock pre { flex: 1; min-width: 0; margin: 0; }
+.cblock .copy { flex: none; margin-top: 10px; opacity: 0.6; }
+.cblock:hover .copy { opacity: 1; }
 @media (max-width: 860px) {
   .wrap { grid-template-columns: 1fr; }
   aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
@@ -174,7 +178,11 @@ document.querySelectorAll("pre > code.language-promql").forEach((code) => {
 document.querySelectorAll("pre").forEach((pre) => {
   if (pre.closest(".qblock") || pre.classList.contains("file")) return;
   const code = pre.querySelector("code");
-  if (code) pre.appendChild(copyBtn(code.textContent.replace(/\n$/, "")));
+  if (!code) return;
+  const box = document.createElement("div");
+  box.className = "cblock";
+  pre.replaceWith(box);
+  box.append(pre, copyBtn(code.textContent.replace(/\n$/, "")));
 });
 
 document.querySelectorAll("blockquote").forEach((bq) => {
