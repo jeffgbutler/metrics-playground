@@ -123,5 +123,15 @@ just show `(No Value)`. The attribute list tells you nothing about a metric. The
    back between two scrapes?
 2. The scrape and federate paths send the *same metric name* for the same instance. What keeps them apart in
    Honeycomb, and what would happen to your queries if `collection.method` weren't there?
-3. In the OTLP data, metric names have dots and units live in metadata (`s`, `By`). In Prometheus the unit is in
-   the name (`_seconds`, `_bytes`). What does each convention make easy or hard?
+3. The two conventions name the same measurement differently. In Prometheus the unit is part of the name
+   (`_seconds`, `_bytes`) and counters end in `_total`. In OTLP, names are dotted, with no unit and no `_total`,
+   and the unit travels as metadata beside the name. Some pairs from checkout-1 (Prometheus name → OTLP name, OTLP
+   unit):
+    * `process_resident_memory_bytes` → `process.memory.usage` (`By`)
+    * `process_cpu_seconds_total` → `process.cpu.time` (`s`)
+    * `http_request_duration_seconds` → `http.server.request.duration` (`s`)
+    * `http_requests_in_flight` → `http.server.active_requests` (`{request}`)
+    * `order_value_dollars` → `shop.order.value` (`USD`)
+
+    What does each convention make easy or hard? Think about reading a query without its metadata, about
+    renaming a metric when its unit changes, and about writing one Honeycomb query that covers both paths.
