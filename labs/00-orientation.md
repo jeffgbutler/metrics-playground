@@ -67,7 +67,14 @@ The simulator's HTTP service discovery returns one entry per instance, 18 in all
 
 ## 3. Prometheus writes metrics about scraping
 
-For every scrape Prometheus records synthetic series. Run each:
+After every scrape, Prometheus writes a few series of its own about how that scrape went. They're *synthetic*:
+the target never exposes them (`curl -s localhost:9110/metrics | grep -E '^(up|scrape_)'` finds nothing), but
+Prometheus stores them with the target's labels. So `up{instance="checkout-1"}` sits right next to checkout-1's real
+metrics. Run each.
+
+In the docs site, every query gets three buttons: **Grafana** and **Prometheus** open it in that UI, ready to
+run, and **copy** puts it on the clipboard so you can paste it into a query box you already have open. Queries in
+the rest of the labs work the same way.
 
 ```promql
 up
@@ -76,7 +83,8 @@ scrape_samples_scraped
 scrape_series_added
 ```
 
-`up` is not exposed by any target. Prometheus generates it: 1 if the scrape worked, 0 if it didn't.
+`up` is 1 if the scrape worked, 0 if it didn't. No target can report its own `up`: a target that's down can't
+answer the scrape.
 
 ## 4. The same metric, four ways
 
