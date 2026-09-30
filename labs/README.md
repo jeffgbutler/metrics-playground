@@ -16,6 +16,9 @@ more than the steps. Write your answers down (the [scorecard](scorecard.md) is a
 | 07 | [Infrastructure and correlation](07-infrastructure.md) | USE method, connecting app symptoms to host causes, forecasting, alert design | `noisy_neighbor`, `disk_fill`, `memory_leak`, `db_pool_exhaustion`, `queue_backlog`, `cache_eviction` |
 | 08 | [Incident drills](08-incident-drills.md) | putting it together under uncertainty, building dashboards in both tools | mystery mode |
 
+Read these in a browser at **http://localhost:8081** (linked from the control UI). Every PromQL query there has
+**Grafana** and **Prometheus** buttons that open it ready to run, and shell commands have a copy button.
+
 ## Before you start
 
 * `docker compose up -d --build` and let it run **at least 15 minutes** before lab 01. An hour is better for lab 07

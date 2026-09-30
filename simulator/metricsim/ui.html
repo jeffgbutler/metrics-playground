@@ -22,6 +22,8 @@ h1 { font-size: 18px; margin: 0 0 6px; font-weight: 650; }
 h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 10px; font-weight: 600; }
 a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
 .links a { margin-right: 16px; font-size: 13px; }
+.links a.workbook { display: inline-block; background: var(--accent); color: #fff; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
+.links a.workbook:hover { text-decoration: none; filter: brightness(1.08); }
 main { padding: 0 24px 60px; max-width: 1400px; margin: 0 auto; }
 .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
 .stats b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -63,6 +65,7 @@ td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 <header>
   <h1>Byte Mart - metrics playground control</h1>
   <div class="links">
+    <a class="workbook" href="http://localhost:8081/labs/README.md" target="_blank">Lab workbook &rarr;</a>
     <a href="http://localhost:3000" target="_blank">Grafana</a>
     <a href="http://localhost:9090/query" target="_blank">Prometheus</a>
     <a href="http://localhost:9090/targets" target="_blank">Prometheus targets</a>

@@ -8,7 +8,7 @@ It has 20 failure scenarios. About half break the *system* (latency, errors, hos
 half break the *metrics* (counter resets, scrape timeouts, cardinality explosions, histograms that lie, NaNs, clock
 skew). Those are where tools disagree with each other, and where most of the learning is.
 
-Start with [labs/README.md](labs/README.md) once the stack is up.
+Start with the lab workbook at http://localhost:8081 once the stack is up (or read [labs/README.md](labs/README.md)).
 
 ## What's in the box
 
@@ -35,6 +35,7 @@ Start with [labs/README.md](labs/README.md) once the stack is up.
 
 | Component | URL | Notes |
 |---|---|---|
+| Lab workbook | http://localhost:8081 | the labs rendered, with Grafana / Prometheus buttons on every PromQL query |
 | Simulator control UI | http://localhost:8080 | start/stop scenarios, mystery mode, target list with links to raw `/metrics` |
 | Grafana | http://localhost:3000 | no login; "Playground" folder has a starter dashboard |
 | Prometheus | http://localhost:9090 | `/targets`, `/alerts`, `/tsdb-status` are worth bookmarking |
@@ -56,7 +57,7 @@ cp .env.example .env        # add HONEYCOMB_API_KEY (an ingest key; a dedicated 
 docker compose up -d --build
 ```
 
-Then open http://localhost:8080 and http://localhost:3000. Give it ~15 minutes before rate windows and
+Then open http://localhost:8081 (labs), http://localhost:8080 (control UI) and http://localhost:3000 (Grafana). Give it ~15 minutes before rate windows and
 recording rules look sensible. Stop with `docker compose down` (keeps Prometheus/Grafana data) or
 `docker compose down -v` (wipes it).
 

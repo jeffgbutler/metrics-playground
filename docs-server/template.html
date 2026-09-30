@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@@title@@ - Metrics Playground Labs</title>
+<style>
+:root {
+  --bg: #fbfbf9; --panel: #ffffff; --side: #f3f2ee; --ink: #1f1f1c; --muted: #6b6a64; --line: #e3e2dc;
+  --accent: #2f6fdf; --code-bg: #f3f2ee; --code-ink: #2b2b27; --pre-bg: #1e1f22; --pre-ink: #e6e6e1;
+  --comment: #8b8d93; --hc-bg: #fff6e8; --hc-line: #f0b44c; --btn: #2d2f34; --btn-ink: #e6e6e1;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #161615; --panel: #1c1c1b; --side: #1f1f1d; --ink: #e9e8e3; --muted: #9d9c95; --line: #33332f;
+    --accent: #79a4ff; --code-bg: #2a2a27; --code-ink: #e9e8e3; --pre-bg: #111214; --pre-ink: #e6e6e1;
+    --comment: #7d8088; --hc-bg: #2a2317; --hc-line: #b98424; --btn: #2d2f34; --btn-ink: #e6e6e1; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+header.top { position: sticky; top: 0; z-index: 5; display: flex; gap: 18px; align-items: center; padding: 10px 20px;
+  background: var(--panel); border-bottom: 1px solid var(--line); font-size: 14px; }
+header.top b { font-weight: 650; margin-right: auto; }
+header.top b a { color: var(--ink); }
+.wrap { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: calc(100vh - 45px); }
+aside { background: var(--side); border-right: 1px solid var(--line); padding: 18px 12px; position: sticky; top: 45px;
+  height: calc(100vh - 45px); overflow-y: auto; font-size: 14px; }
+aside a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--ink); line-height: 1.35; }
+aside a:hover { background: var(--line); text-decoration: none; }
+aside a.on { background: var(--accent); color: #fff; }
+aside .num { display: inline-block; width: 24px; color: var(--muted); font-variant-numeric: tabular-nums; }
+aside a.on .num { color: #fff; }
+aside .sep { height: 1px; background: var(--line); margin: 10px 6px; }
+main { padding: 28px 40px 80px; max-width: 920px; }
+h1 { font-size: 30px; line-height: 1.2; margin: 6px 0 18px; }
+h2 { font-size: 22px; margin: 36px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+h3 { font-size: 18px; margin: 26px 0 8px; }
+p, li { max-width: 78ch; }
+code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); color: var(--code-ink);
+  padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--pre-bg); color: var(--pre-ink); padding: 12px 14px; border-radius: 8px; overflow-x: auto;
+  font-size: 13.5px; line-height: 1.5; margin: 12px 0; position: relative; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre.file { max-height: none; }
+table { border-collapse: collapse; margin: 14px 0; font-size: 14.5px; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--side); }
+blockquote { margin: 14px 0; padding: 8px 16px; border-left: 4px solid var(--line); color: var(--ink); background: var(--panel); border-radius: 0 6px 6px 0; }
+blockquote.hc { border-left-color: var(--hc-line); background: var(--hc-bg); }
+blockquote p { margin: 6px 0; }
+.pn { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 16px; border-top: 1px solid var(--line); }
+.filehead { font-size: 14px; color: var(--muted); }
+ul.dir { list-style: none; padding: 0; } ul.dir li { padding: 3px 0; font-family: ui-monospace, Menlo, monospace; }
+
+/* runnable PromQL blocks */
+.qblock { background: var(--pre-bg); border-radius: 8px; margin: 12px 0; padding: 6px 0; overflow: hidden; }
+.qrow { display: flex; align-items: flex-start; gap: 8px; padding: 3px 10px 3px 14px; }
+.qrow:hover { background: rgba(255,255,255,0.05); }
+.qrow pre { margin: 0; padding: 2px 0; background: none; flex: 1; border-radius: 0; overflow-x: auto; }
+.qrow.comment pre { color: var(--comment); }
+.qrow .btns { display: flex; gap: 4px; flex: none; opacity: 0.55; padding-top: 2px; }
+.qrow:hover .btns { opacity: 1; }
+.btn { font: 12px ui-sans-serif, system-ui, sans-serif; background: var(--btn); color: var(--btn-ink); border: 1px solid #44464c;
+  border-radius: 5px; padding: 2px 8px; cursor: pointer; white-space: nowrap; text-decoration: none; }
+.btn:hover { background: #3b3e45; text-decoration: none; }
+pre .copy { position: absolute; top: 8px; right: 8px; opacity: 0.6; }
+pre:hover .copy { opacity: 1; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: 1fr; }
+  aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+  main { padding: 20px 16px 60px; }
+  header.top { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <b><a href="/labs/README.md">Metrics Playground Labs</a></b>
+  <a href="@@control@@" target="_blank">Control UI</a>
+  <a href="@@grafana@@" target="_blank">Grafana</a>
+  <a href="@@prometheus@@/query" target="_blank">Prometheus</a>
+  <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a>
+</header>
+<div class="wrap">
+  <aside>@@nav@@</aside>
+  <main>
+    @@body@@
+    @@pn@@
+  </main>
+</div>
+<script>
+const LINKS = @@links@@;
+
+function grafanaUrl(expr) {
+  const panes = {a: {datasource: "prometheus", queries: [{refId: "A", expr, range: true,
+    datasource: {type: "prometheus", uid: "prometheus"}}], range: {from: "now-30m", to: "now"}}};
+  return `${LINKS.grafana}/explore?schemaVersion=1&orgId=1&panes=${encodeURIComponent(JSON.stringify(panes))}`;
+}
+function promUrl(expr) {
+  return `${LINKS.prometheus}/query?g0.expr=${encodeURIComponent(expr)}&g0.tab=graph&g0.range_input=30m`;
+}
+function copyBtn(text) {
+  const b = document.createElement("button");
+  b.className = "btn copy"; b.textContent = "copy";
+  b.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); b.textContent = "copied"; }
+    catch (e) { b.textContent = "select + copy"; }
+    setTimeout(() => b.textContent = "copy", 1500);
+  };
+  return b;
+}
+function linkBtn(label, href, title) {
+  const a = document.createElement("a");
+  a.className = "btn"; a.textContent = label; a.href = href; a.target = "_blank"; a.title = title;
+  return a;
+}
+
+// Split a PromQL block into separate queries: a query continues while parentheses/braces are open or the next
+// line is indented (a continuation such as "  - sum(...)"). A trailing "   # note" is a comment, not PromQL.
+function splitQueries(text) {
+  const out = []; let cur = null; let depth = 0;
+  const stripComment = (l) => { const m = l.match(/^(.*?\S)\s{2,}#\s.*$/); return m ? m[1] : l; };
+  for (const raw of text.replace(/\n$/, "").split("\n")) {
+    const line = raw.replace(/\s+$/, "");
+    const trimmed = line.trim();
+    if (cur && (depth > 0 || (/^\s/.test(line) && trimmed && !trimmed.startsWith("#")))) {
+      cur.display.push(line); cur.expr.push(stripComment(line));
+    } else if (!trimmed) {
+      cur = null; continue;
+    } else if (trimmed.startsWith("#")) {
+      out.push({comment: true, display: [line]}); cur = null; continue;
+    } else {
+      cur = {display: [line], expr: [stripComment(line)]}; out.push(cur); depth = 0;
+    }
+    for (const ch of stripComment(line).replace(/"(?:[^"\\]|\\.)*"/g, "")) {
+      if ("({[".includes(ch)) depth++; else if (")}]".includes(ch)) depth--;
+    }
+    if (depth <= 0 && !/^\s/.test(line)) depth = 0;
+  }
+  return out;
+}
+
+document.querySelectorAll("pre > code.language-promql").forEach((code) => {
+  const pre = code.parentElement;
+  const block = document.createElement("div");
+  block.className = "qblock";
+  for (const q of splitQueries(code.textContent)) {
+    const row = document.createElement("div");
+    row.className = "qrow" + (q.comment ? " comment" : "");
+    const p = document.createElement("pre");
+    p.textContent = q.display.join("\n");
+    row.appendChild(p);
+    if (!q.comment) {
+      const expr = q.expr.join("\n").trim();
+      const btns = document.createElement("div");
+      btns.className = "btns";
+      btns.append(linkBtn("Grafana", grafanaUrl(expr), "Open in Grafana Explore"),
+                  linkBtn("Prometheus", promUrl(expr), "Open in the Prometheus UI (shows warnings/info)"),
+                  copyBtn(expr));
+      row.appendChild(btns);
+    }
+    block.appendChild(row);
+  }
+  pre.replaceWith(block);
+});
+
+document.querySelectorAll("pre").forEach((pre) => {
+  if (pre.closest(".qblock") || pre.classList.contains("file")) return;
+  const code = pre.querySelector("code");
+  if (code) pre.appendChild(copyBtn(code.textContent.replace(/\n$/, "")));
+});
+
+document.querySelectorAll("blockquote").forEach((bq) => {
+  if (/^\s*Honeycomb/.test(bq.textContent)) bq.classList.add("hc");
+});
+
+// Relative links inside rendered markdown already resolve; open external ones in a new tab.
+document.querySelectorAll("main a[href^='http']").forEach((a) => { a.target = "_blank"; });
+</script>
+</body>
+</html>

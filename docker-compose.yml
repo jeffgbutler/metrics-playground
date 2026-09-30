@@ -1,6 +1,7 @@
 # Metrics playground: docker compose up -d --build
 #
 #   http://localhost:8080   simulator control UI (start/stop failure scenarios)
+#   http://localhost:8081   the lab workbook, rendered
 #   http://localhost:3000   Grafana (no login)
 #   http://localhost:9090   Prometheus
 #   http://localhost:55679/debug/pipelinez   collector zPages
@@ -26,6 +27,16 @@ services:
       - "8080:8080"
       - "9101-9118:9101-9118"
       - "9201-9213:9201-9213"
+
+  docs:
+    build: ./docs-server
+    restart: unless-stopped
+    # The repo is mounted read-only so lab edits show up on refresh. The server only serves .md and text/config
+    # files and refuses every dotfile except .env.example, so .env (your Honeycomb key) is never served.
+    volumes:
+      - ./:/site:ro
+    ports:
+      - "8081:8000"
 
   prometheus:
     image: prom/prometheus:v3.15.0

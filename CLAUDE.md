@@ -19,6 +19,9 @@ Weird corner cases are a feature. Keep it runnable with one `docker compose up -
   overridable via `COLLECTION_METHOD_*` to label experiments). Labs compare paths with `GROUP BY collection.method`.
   Pipelines are toggled with `PIPELINE_*_EXPORTERS` env vars (YAML lists expanded by the collector).
 - `grafana/` - provisioned datasource + starter dashboard (generated JSON; edit freely).
+- `docs-server/` - stdlib HTTP server + python-markdown that renders the repo (mounted read-only) at :8081. Allowlist of
+  file types; refuses dotfiles except `.env.example`. `template.html` adds per-query Grafana/Prometheus buttons to
+  ```promql blocks (client-side query splitting) - keep one query per line or per indented/parenthesised group.
 - `labs/` - the guided workbook. Every claim in a lab should be something that was observed in this stack.
 
 ## Simulator architecture (read in this order)
