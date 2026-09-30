@@ -37,7 +37,7 @@ Start with the lab workbook at http://localhost:8081 once the stack is up (or re
 |---|---|---|
 | Lab workbook | http://localhost:8081 | the labs rendered, with Grafana / Prometheus buttons on every PromQL query |
 | Simulator control UI | http://localhost:8080 | start/stop scenarios, mystery mode, target list with links to raw `/metrics` |
-| Grafana | http://localhost:3000 | no login; "Playground" folder has a starter dashboard |
+| Grafana | http://localhost:3000 | no login; opens on the starter dashboard (also in the "Playground" folder) |
 | Prometheus | http://localhost:9090 | `/targets`, `/alerts`, `/tsdb-status` are worth bookmarking |
 | Collector zPages | http://localhost:55679/debug/pipelinez | |
 | Raw exposition | http://localhost:9101/metrics ... | every simulated process; read these, they're short |

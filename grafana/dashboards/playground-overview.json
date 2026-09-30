@@ -82,9 +82,9 @@
     },
     {
       "id": 2,
-      "type": "state-timeline",
-      "title": "Active scenarios",
-      "description": "From the simulator's own job=\"simulator\" target. In real life you never get this panel - that is the point of the rest of the dashboard.",
+      "type": "timeseries",
+      "title": "Active scenarios (intensity)",
+      "description": "From the simulator's own job=\"simulator\" target: each scenario ramps up, holds, and ramps down. In real life you never get this panel - that is the point of the rest of the dashboard.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -101,7 +101,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sim_scenario_active == 1",
+          "expr": "sim_scenario_intensity > 0",
           "refId": "A",
           "range": true,
           "legendFormat": "{{scenario}}"
@@ -109,16 +109,33 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "unit": "percentunit",
+          "max": 1
         },
         "overrides": []
       },
       "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "rowHeight": 0.8,
         "legend": {
-          "showLegend": false
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
