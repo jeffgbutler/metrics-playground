@@ -24,10 +24,12 @@ import markdown
 
 ROOT = Path(os.environ.get("SITE_ROOT", "/site")).resolve()
 PORT = int(os.environ.get("PORT", "8000"))
+# Empty = "same host as this page, standard port", resolved in the browser. Set these only if the tools live
+# somewhere else (e.g. behind a reverse proxy with their own hostnames).
 LINKS = {
-    "control": os.environ.get("CONTROL_URL", "http://localhost:8080"),
-    "grafana": os.environ.get("GRAFANA_URL", "http://localhost:3000"),
-    "prometheus": os.environ.get("PROMETHEUS_URL", "http://localhost:9090"),
+    "control": os.environ.get("CONTROL_URL", ""),
+    "grafana": os.environ.get("GRAFANA_URL", ""),
+    "prometheus": os.environ.get("PROMETHEUS_URL", ""),
 }
 TEXT_TYPES = {".yml", ".yaml", ".py", ".json", ".toml", ".txt", ".sh", ".example", ".conf"}
 ALLOWED_DOTFILES = {".env.example"}
@@ -81,6 +83,8 @@ def page(title: str, body: str, current: str) -> bytes:
     nav += "".join(link(h, t) for h, t in labs)
     nav += "".join(link(h, "Scorecard") for h, _ in score)
     nav += '<div class="sep"></div>' + link("/README.md", "Playground README")
+    if (ROOT / "VM.md").exists():
+        nav += link("/VM.md", "Running on a VM")
 
     # prev / next across the lab sequence
     seq = [h for h, _ in readme + labs + score]
@@ -93,7 +97,6 @@ def page(title: str, body: str, current: str) -> bytes:
 
     values = {
         "title": html.escape(title), "nav": nav, "body": body, "pn": pn, "links": json.dumps(LINKS),
-        "control": LINKS["control"], "grafana": LINKS["grafana"], "prometheus": LINKS["prometheus"],
     }
     out = TEMPLATE
     for k, v in values.items():

@@ -64,6 +64,13 @@ recording rules look sensible. Stop with `docker compose down` (keeps Prometheus
 Without a Honeycomb key everything local still works; the collector just logs export errors. To run
 fully offline, set the three `PIPELINE_*_EXPORTERS` to `[debug]` or `[nop]` in `.env`.
 
+### Running it on an always-on VM
+
+See [VM.md](VM.md): publish the two home-grown images to Harbor with `scripts/publish-images.sh`, `git clone` the repo
+on the VM, set `PLAYGROUND_REGISTRY` / `PLAYGROUND_TAG` and `PLAYGROUND_BIND=0.0.0.0` in `.env`, and
+`docker compose up -d --no-build`. (Ports listen on `127.0.0.1` unless `PLAYGROUND_BIND` says otherwise; nothing in
+the stack has authentication, so keep it on a private network.)
+
 ### Driving scenarios
 
 The UI is easiest. From a terminal:

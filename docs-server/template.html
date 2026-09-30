@@ -77,9 +77,9 @@ pre:hover .copy { opacity: 1; }
 <body>
 <header class="top">
   <b><a href="/labs/README.md">Metrics Playground Labs</a></b>
-  <a href="@@control@@" target="_blank">Control UI</a>
-  <a href="@@grafana@@" target="_blank">Grafana</a>
-  <a href="@@prometheus@@/query" target="_blank">Prometheus</a>
+  <a data-link="control" target="_blank">Control UI</a>
+  <a data-link="grafana" target="_blank">Grafana</a>
+  <a data-link="prometheus" data-path="/query" target="_blank">Prometheus</a>
   <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a>
 </header>
 <div class="wrap">
@@ -91,6 +91,12 @@ pre:hover .copy { opacity: 1; }
 </div>
 <script>
 const LINKS = @@links@@;
+// Unset links mean "same host as this page": localhost on a laptop, the VM's name or IP on a server.
+const PORTS = {control: 8080, grafana: 3000, prometheus: 9090};
+for (const k of Object.keys(PORTS)) {
+  if (!LINKS[k]) LINKS[k] = `${location.protocol}//${location.hostname}:${PORTS[k]}`;
+}
+document.querySelectorAll("a[data-link]").forEach((a) => { a.href = LINKS[a.dataset.link] + (a.dataset.path || ""); });
 
 function grafanaUrl(expr) {
   const panes = {a: {datasource: "prometheus", queries: [{refId: "A", expr, range: true,

@@ -22,6 +22,9 @@ Weird corner cases are a feature. Keep it runnable with one `docker compose up -
 - `docs-server/` - stdlib HTTP server + python-markdown that renders the repo (mounted read-only) at :8081. Allowlist of
   file types; refuses dotfiles except `.env.example`. `template.html` adds per-query Grafana/Prometheus buttons to
   ```promql blocks (client-side query splitting) - keep one query per line or per indented/parenthesised group.
+- `scripts/publish-images.sh` + `VM.md` - multi-arch build/push of the two home-grown images (simulator, docs) to
+  Harbor and running on a VM. Compose `image:` names come from `PLAYGROUND_REGISTRY`/`PLAYGROUND_TAG`; every port binds
+  to `PLAYGROUND_BIND` (default 127.0.0.1). UI cross-links derive from `location.hostname` - never hard-code localhost.
 - `labs/` - the guided workbook. Every claim in a lab should be something that was observed in this stack.
 
 ## Simulator architecture (read in this order)

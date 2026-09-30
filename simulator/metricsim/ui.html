@@ -65,11 +65,11 @@ td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 <header>
   <h1>Byte Mart - metrics playground control</h1>
   <div class="links">
-    <a class="workbook" href="http://localhost:8081/labs/README.md" target="_blank">Lab workbook &rarr;</a>
-    <a href="http://localhost:3000" target="_blank">Grafana</a>
-    <a href="http://localhost:9090/query" target="_blank">Prometheus</a>
-    <a href="http://localhost:9090/targets" target="_blank">Prometheus targets</a>
-    <a href="http://localhost:55679/debug/pipelinez" target="_blank">Collector zPages</a>
+    <a class="workbook" data-port="8081" data-path="/labs/README.md" target="_blank">Lab workbook &rarr;</a>
+    <a data-port="3000" target="_blank">Grafana</a>
+    <a data-port="9090" data-path="/query" target="_blank">Prometheus</a>
+    <a data-port="9090" data-path="/targets" target="_blank">Prometheus targets</a>
+    <a data-port="55679" data-path="/debug/pipelinez" target="_blank">Collector zPages</a>
     <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a>
   </div>
   <div class="stats" id="stats"></div>
@@ -98,6 +98,10 @@ td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 <script>
 let catalog = [], current = 'system';
 const $ = (id) => document.getElementById(id);
+// Links to the other tools use the host this page was loaded from, so they work on a laptop (localhost)
+// and on a VM (its hostname or IP) without configuration.
+const hostUrl = (port, path = '') => `${location.protocol}//${location.hostname}:${port}${path}`;
+document.querySelectorAll('a[data-port]').forEach(a => a.href = hostUrl(a.dataset.port, a.dataset.path || ''));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 2500); }
 async function post(path, body) {
@@ -151,7 +155,7 @@ async function refresh() {
   $('targets').innerHTML = st.targets.map(t => `
     <tr><td><span class="dot ${t.up ? 'up' : 'down'}"></span>${t.name}</td><td class="mono">${t.identity}</td>
     <td>${t.kind}</td><td>${t.node}</td><td class="mono">${t.version || ''}</td>
-    <td class="mono"><a href="http://localhost:${t.port}/metrics" target="_blank">:${t.port}/metrics</a></td></tr>`).join('');
+    <td class="mono"><a href="${hostUrl(t.port, '/metrics')}" target="_blank">:${t.port}/metrics</a></td></tr>`).join('');
 }
 (async () => {
   catalog = (await (await fetch('/api/scenarios')).json()).catalog;
