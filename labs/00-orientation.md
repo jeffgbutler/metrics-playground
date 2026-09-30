@@ -92,19 +92,30 @@ Pick `process_resident_memory_bytes` for `checkout-1`.
 
 **Prometheus:** `process_resident_memory_bytes{instance="checkout-1"}`
 
-**Honeycomb, `collection.method = prometheus-scrape`:** run `AVG(process_resident_memory_bytes)` WHERE
-`service.instance.id = checkout-1` AND `collection.method = prometheus-scrape`. Then look at which attributes you can
-GROUP BY for this metric. Answer:
-* Which Prometheus labels became `service.name` and `service.instance.id`? Which stayed as plain attributes (`node`, `team`)?
-* What are `server.address`, `server.port`, `url.scheme`? (The receiver derives them from `instance`; ours isn't `host:port`, so the port is empty.)
-* Remove the `collection.method` filter and GROUP BY it instead. Which methods send this metric under this exact name?
+**Honeycomb:** every path lands in the same metrics dataset. So the GROUP BY list always offers every attribute
+that *any* path has ever sent, and filtering or grouping on one that a path doesn't send still works: those rows
+just show `(No Value)`. The attribute list tells you nothing about a metric. The `(No Value)` cells do. Grouping by
+`collection.method` alongside other attributes is how you see what each path actually sent.
 
-**Honeycomb, `collection.method = prometheus-federate`:** the same query. What extra attribute appears? (`cluster`: it's an
-*external label*, added only to data leaving Prometheus.)
-
-**Honeycomb, `collection.method = otlp-push`:** there is no `process_resident_memory_bytes`. Find `process.memory.usage` instead,
-WHERE `service.instance.id = checkout-1`. Compare the value. Look at `service.version`, `host.name`,
-`deployment.environment.name`: resource attributes the SDK sends that Prometheus data doesn't have.
+1. Run `AVG(process_resident_memory_bytes)` WHERE `service.instance.id = checkout-1`, GROUP BY `collection.method`.
+    Which methods send this metric under this exact name?
+2. Add `service.name`, `node`, `team`, `cluster`, `server.address`, `server.port` and `url.scheme` to the GROUP BY.
+    * Which Prometheus labels became `service.name` and `service.instance.id`? Look for `job` or `instance` in the
+      GROUP BY list: neither exists in Honeycomb.
+    * `node` and `team` stayed as plain attributes, with the same values on both paths.
+    * `server.address`, `server.port` and `url.scheme` are derived by the receiver from `instance`. Ours isn't
+      `host:port`, so what's in `server.port`?
+    * `cluster` has a value on only one path. Which, and why? (It's an *external label*, which Prometheus adds only
+      to data leaving it.)
+3. OTLP push has no `process_resident_memory_bytes`. Its name for the same thing is `process.memory.usage`. Add
+    `AVG(process.memory.usage)` as a second calculation, and add `host.name`, `service.version` and
+    `deployment.environment.name` to the GROUP BY. Each row now has a value for only one of the two calculations.
+    * Compare the values across the three rows.
+    * Which attributes does only otlp-push have? These are resource attributes the SDK sends, which Prometheus
+      data doesn't have.
+    * Look at the values, not just the names. Where does `node-a` appear on the OTLP row? Where does `playground`
+      appear? The same facts arrive under different keys depending on the path. A GROUP BY written for one path
+      shows `(No Value)` on another, and a filter like `node = node-a` silently drops the OTLP data altogether.
 
 ## Questions
 
