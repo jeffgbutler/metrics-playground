@@ -1,0 +1,23 @@
+[project]
+name = "metricsim"
+version = "0.1.0"
+description = "Simulated microservices that expose Prometheus metrics (and push OTLP) for the metrics playground"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.9",
+    "opentelemetry-sdk>=1.30",
+    "opentelemetry-exporter-otlp-proto-http>=1.30",
+]
+
+[project.scripts]
+metricsim = "metricsim.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["metricsim*"]
+
+[tool.setuptools.package-data]
+metricsim = ["ui.html"]

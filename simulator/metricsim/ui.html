@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Byte Mart Control</title>
+<style>
+:root {
+  --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e2e1dc;
+  --accent: #2f6fdf; --good: #1f8a4c; --bad: #c7362b; --warn: #b7791f; --code: #f0efea;
+  --sys: #2f6fdf; --met: #8a4fd6;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151514; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9c9b95; --line: #33332f;
+    --accent: #6d9dff; --good: #4cc27f; --bad: #ff6b5e; --warn: #e3a948; --code: #2a2a27;
+    --sys: #6d9dff; --met: #b88cff; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 18px 24px 12px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+h1 { font-size: 18px; margin: 0 0 6px; font-weight: 650; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 10px; font-weight: 600; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+.links a { margin-right: 16px; font-size: 13px; }
+main { padding: 0 24px 60px; max-width: 1400px; margin: 0 auto; }
+.stats { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.stats b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.card h3 { font-size: 15px; margin: 0 0 2px; font-weight: 620; }
+.key { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+.summary { margin: 8px 0; color: var(--ink); }
+details { margin: 6px 0 8px; } summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+ul.look { margin: 6px 0 0; padding-left: 18px; }
+ul.look li { margin: 3px 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+.params { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; margin: 8px 0; font-size: 12.5px; }
+.params label { color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+input, select { font: inherit; font-size: 12.5px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); min-width: 0; }
+button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { border-color: var(--bad); color: var(--bad); }
+button:hover { filter: brightness(1.05); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; }
+.tag.system { color: var(--sys); } .tag.metrics { color: var(--met); }
+.active-card { border-left: 4px solid var(--warn); }
+.bar { height: 6px; background: var(--code); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.bar > div { height: 100%; background: var(--warn); transition: width .8s; }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot.up { background: var(--good); } .dot.down { background: var(--bad); }
+.empty { color: var(--muted); font-style: italic; }
+.tabs button { border-radius: 6px 6px 0 0; }
+.tabs button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+#toast { position: fixed; bottom: 18px; right: 18px; background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .3s; }
+@media (max-width: 600px) { main, header { padding-left: 16px; padding-right: 16px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Byte Mart - metrics playground control</h1>
+  <div class="links">
+    <a href="http://localhost:3000" target="_blank">Grafana</a>
+    <a href="http://localhost:9090/query" target="_blank">Prometheus</a>
+    <a href="http://localhost:9090/targets" target="_blank">Prometheus targets</a>
+    <a href="http://localhost:55679/debug/pipelinez" target="_blank">Collector zPages</a>
+    <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+<main>
+  <h2>Active scenarios</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button onclick="mystery()">Start a mystery scenario</button>
+    <button onclick="reveal()">Reveal mystery</button>
+    <button class="danger" onclick="post('/api/stop_all')">Stop all</button>
+  </div>
+  <div class="grid" id="active"></div>
+
+  <h2>Scenario catalog</h2>
+  <div class="tabs row" style="gap:4px">
+    <button id="tab-system" class="on" onclick="tab('system')">System failures</button>
+    <button id="tab-metrics" onclick="tab('metrics')">Metrics pathologies</button>
+  </div>
+  <div class="grid" id="catalog" style="margin-top:12px"></div>
+
+  <h2>Scrape targets (ground truth)</h2>
+  <table><thead><tr><th>target</th><th>instance label</th><th>kind</th><th>node</th><th>version</th><th>raw exposition</th></tr></thead>
+  <tbody id="targets"></tbody></table>
+</main>
+<div id="toast"></div>
+<script>
+let catalog = [], current = 'system';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 2500); }
+async function post(path, body) {
+  const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+  const j = await r.json();
+  if (!r.ok) { toast('Error: ' + j.error); return null; }
+  refresh(); return j;
+}
+async function mystery() { const j = await post('/api/mystery'); if (j) toast('A mystery scenario is running. Go find it.'); }
+async function reveal() { const j = await post('/api/reveal'); if (j) toast(j.active.map(a => a.key).join(', ') || 'nothing running'); }
+function tab(c) { current = c; $('tab-system').className = c === 'system' ? 'on' : ''; $('tab-metrics').className = c === 'metrics' ? 'on' : ''; renderCatalog(); }
+function fmtDur(s) { s = Math.round(s); return s >= 60 ? Math.floor(s / 60) + 'm' + (s % 60 ? (s % 60) + 's' : '') : s + 's'; }
+
+function renderCatalog() {
+  $('catalog').innerHTML = catalog.filter(s => s.category === current).map(s => `
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3>${esc(s.title)}</h3><span class="tag ${s.category}">${s.category}</span></div>
+      <div class="key">${s.key}</div>
+      <div class="summary">${esc(s.summary)}</div>
+      <details><summary>Where to look</summary><ul class="look">${s.look_for.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>
+      <div class="params">
+        ${Object.entries(s.params).map(([k, p]) => `<label title="${esc(p.help)}">${k}</label>${
+          p.choices.length ? `<select data-p="${k}">${p.choices.map(c => `<option ${c === p.default ? 'selected' : ''}>${c}</option>`).join('')}</select>`
+          : `<input data-p="${k}" value="${esc(p.default)}" title="${esc(p.help)}">`}`).join('')}
+        <label>duration</label><input data-d value="${fmtDur(s.duration_s)}">
+      </div>
+      <button class="primary" onclick="start('${s.key}', this)">Start</button>
+    </div>`).join('');
+}
+async function start(key, btn) {
+  const card = btn.closest('.card'), params = {};
+  card.querySelectorAll('[data-p]').forEach(el => params[el.dataset.p] = el.value);
+  const j = await post(`/api/scenarios/${key}/start`, {params, duration: card.querySelector('[data-d]').value});
+  if (j) toast(`${key} started`);
+}
+async function refresh() {
+  const st = await (await fetch('/api/status')).json();
+  $('stats').innerHTML = `
+    <span>frontend <b>${st.frontend_rps}</b> req/s</span>
+    <span>traffic multiplier <b>x${st.traffic_multiplier}</b></span>
+    <span>restarts <b>${st.restarts}</b></span><span>OOM kills <b>${st.oom_kills}</b></span>
+    <span>OTLP push <b>${st.otlp ? 'on' : 'off'}</b></span>
+    <span>tick <b>${st.tick_ms} ms</b></span><span>up <b>${fmtDur(st.uptime_s)}</b></span>`;
+  $('active').innerHTML = st.active.length ? st.active.map(a => `
+    <div class="card active-card">
+      <div class="row" style="justify-content:space-between"><h3>${esc(a.title)}</h3><span class="key">${a.key}</span></div>
+      <div class="bar"><div style="width:${Math.round(a.intensity * 100)}%"></div></div>
+      <div class="key">intensity ${a.intensity.toFixed(2)} &middot; ${fmtDur(a.remaining_s)} left ${a.hidden ? '' : '&middot; ' + esc(JSON.stringify(a.params))}</div>
+      <div class="row" style="margin-top:8px"><button class="danger" onclick="post('/api/scenarios/${a.hidden ? 'mystery' : a.key}/stop')" ${a.hidden ? 'disabled' : ''}>Stop</button></div>
+    </div>`).join('') : '<div class="empty">Nothing running. The system is (mostly) healthy.</div>';
+  $('targets').innerHTML = st.targets.map(t => `
+    <tr><td><span class="dot ${t.up ? 'up' : 'down'}"></span>${t.name}</td><td class="mono">${t.identity}</td>
+    <td>${t.kind}</td><td>${t.node}</td><td class="mono">${t.version || ''}</td>
+    <td class="mono"><a href="http://localhost:${t.port}/metrics" target="_blank">:${t.port}/metrics</a></td></tr>`).join('');
+}
+(async () => {
+  catalog = (await (await fetch('/api/scenarios')).json()).catalog;
+  renderCatalog(); refresh(); setInterval(refresh, 2000);
+})();
+</script>
+</body>
+</html>

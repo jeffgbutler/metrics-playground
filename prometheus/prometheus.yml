@@ -1,0 +1,90 @@
+# Prometheus for the metrics playground.
+#
+# Edit this file, then reload without restarting:   curl -X POST http://localhost:9090/-/reload
+# Check it first:   docker compose exec prometheus promtool check config /etc/prometheus/prometheus.yml
+
+global:
+  scrape_interval: 15s      # how often every target is scraped (the collector uses the same, for fair comparison)
+  scrape_timeout: 10s       # a /metrics response slower than this counts as a failed scrape (up=0)
+  evaluation_interval: 15s  # how often recording + alerting rules run
+  # External labels are attached to data that leaves this Prometheus (federation, remote write, alerts).
+  # Look for `cluster` on collection.method=prometheus-federate data in Honeycomb; it is not on locally-queried series.
+  external_labels:
+    cluster: playground
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # --- Prometheus watching itself (tsdb head series, rule evaluation, scrape stats) ---------------------------------
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- the simulated Byte Mart services ------------------------------------------------------------------------------
+  # Targets come from the simulator's HTTP service discovery endpoint. It returns host:port pairs plus
+  # __meta_* labels; relabel_configs turn those into the target labels you query with. Anything still
+  # starting with __ after relabeling is dropped.
+  - job_name: sim-apps
+    http_sd_configs:
+      - url: http://simulator:8080/sd/apps
+        refresh_interval: 15s
+    # Safety valve: if one scrape returns more samples than this the WHOLE scrape is rejected and up=0.
+    # The cardinality_explosion scenario with customers=800 trips it.
+    sample_limit: 10000
+    relabel_configs:
+      - source_labels: [__meta_service]
+        target_label: job                # job = service name (the usual convention)
+      - source_labels: [__meta_instance]
+        target_label: instance           # a readable name instead of simulator:91xx
+      - source_labels: [__meta_node]
+        target_label: node
+      - source_labels: [__meta_team]
+        target_label: team
+      - source_labels: [__meta_runtime]
+        target_label: runtime
+
+  - job_name: sim-infra
+    http_sd_configs:
+      - url: http://simulator:8080/sd/infra
+        refresh_interval: 15s
+    relabel_configs:
+      - source_labels: [__meta_service]
+        target_label: job
+      - source_labels: [__meta_instance]
+        target_label: instance
+      - source_labels: [__meta_node]
+        target_label: node
+      - source_labels: [__meta_team]
+        target_label: team
+      - source_labels: [__meta_role]
+        regex: (.+)
+        target_label: role
+
+  # Ground truth from the simulator: which scenario is running, which targets are *really* up.
+  - job_name: simulator
+    static_configs:
+      - targets: ["simulator:8080"]
+
+  # --- real infrastructure: the Docker host (Docker Desktop's Linux VM on a Mac) --------------------------------------
+  - job_name: host-node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+    relabel_configs:
+      - target_label: instance
+        replacement: docker-host
+
+  - job_name: cadvisor
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    metric_relabel_configs:
+      # cAdvisor exposes a LOT. Keep everything here so you can see the raw cardinality in Prometheus;
+      # the collector pipelines keep only a subset before sending anything to Honeycomb.
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: compose_service
+
+  # --- the OpenTelemetry Collector's own metrics (points received / sent / dropped per pipeline) -------------------
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8888"]

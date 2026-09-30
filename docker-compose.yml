@@ -1,0 +1,125 @@
+# Metrics playground: docker compose up -d --build
+#
+#   http://localhost:8080   simulator control UI (start/stop failure scenarios)
+#   http://localhost:3000   Grafana (no login)
+#   http://localhost:9090   Prometheus
+#   http://localhost:55679/debug/pipelinez   collector zPages
+#   http://localhost:9101/metrics ...        raw exposition of every simulated process (9101-9118, 9201-9213)
+
+name: metrics-playground
+
+services:
+  simulator:
+    build: ./simulator
+    restart: unless-stopped
+    environment:
+      SIM_BASE_RPS: ${SIM_BASE_RPS:-30}
+      SIM_DAY_LENGTH: ${SIM_DAY_LENGTH:-60m}
+      SIM_OTLP_ENABLED: ${SIM_OTLP_ENABLED:-true}
+      SIM_OTLP_INTERVAL: ${SIM_OTLP_INTERVAL:-15s}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OTLP_TEMPORALITY:-delta}
+      OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION: ${OTLP_HISTOGRAM:-base2_exponential_bucket_histogram}
+      HONEYCOMB_CONFIG_KEY: ${HONEYCOMB_CONFIG_KEY:-}
+      HONEYCOMB_API_ENDPOINT: ${HONEYCOMB_API_ENDPOINT:-https://api.honeycomb.io}
+    ports:
+      - "8080:8080"
+      - "9101-9118:9101-9118"
+      - "9201-9213:9201-9213"
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle          # curl -X POST localhost:9090/-/reload after editing the config
+      - --web.enable-admin-api          # lets you delete series / snapshot the TSDB while experimenting
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on: [simulator]
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      HONEYCOMB_API_KEY: ${HONEYCOMB_API_KEY:-}
+      HONEYCOMB_API_ENDPOINT: ${HONEYCOMB_API_ENDPOINT:-https://api.honeycomb.io}
+      COLLECTION_METHOD_SCRAPE: ${COLLECTION_METHOD_SCRAPE:-prometheus-scrape}
+      COLLECTION_METHOD_FEDERATE: ${COLLECTION_METHOD_FEDERATE:-prometheus-federate}
+      COLLECTION_METHOD_OTLP: ${COLLECTION_METHOD_OTLP:-otlp-push}
+      PIPELINE_SCRAPE_EXPORTERS: ${PIPELINE_SCRAPE_EXPORTERS:-[otlp_http/honeycomb]}
+      PIPELINE_FEDERATE_EXPORTERS: ${PIPELINE_FEDERATE_EXPORTERS:-[otlp_http/honeycomb]}
+      PIPELINE_OTLP_EXPORTERS: ${PIPELINE_OTLP_EXPORTERS:-[otlp_http/honeycomb]}
+      PIPELINE_HOSTMETRICS_EXPORTERS: ${PIPELINE_HOSTMETRICS_EXPORTERS:-[otlp_http/honeycomb]}
+      PIPELINE_FEDERATE_PROCESSORS: ${PIPELINE_FEDERATE_PROCESSORS:-[memory_limiter, resource/federate, batch]}
+      COLLECTOR_DEBUG_VERBOSITY: ${COLLECTOR_DEBUG_VERBOSITY:-basic}
+    volumes:
+      - ./collector/config.yaml:/etc/otelcol/config.yaml:ro
+      - /:/hostfs:ro                    # for the hostmetrics receiver
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "13133:13133"
+      - "55679:55679"
+    depends_on: [simulator, prometheus]
+
+  # --- real infrastructure metrics --------------------------------------------------------------------------------
+  # On a Mac these describe the Docker VM (OrbStack / Docker Desktop), not macOS itself.
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    restart: unless-stopped
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes:
+      - /:/host:ro
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    command:
+      - --docker_only=true
+      # dockerd's managed containerd lives here on OrbStack and most Linux hosts. If cAdvisor only reports the root
+      # cgroup (no per-container series), try CADVISOR_CONTAINERD_SOCK=/run/containerd/containerd.sock in .env.
+      - --containerd=${CADVISOR_CONTAINERD_SOCK:-/var/run/docker/containerd/containerd.sock}
+      - --housekeeping_interval=15s
+      - --store_container_labels=false
+      - --whitelisted_container_labels=com.docker.compose.service
+      - --disable_metrics=advtcp,cpu_topology,cpuset,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+volumes:
+  prometheus-data:
+  grafana-data:

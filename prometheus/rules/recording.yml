@@ -1,0 +1,34 @@
+# Recording rules: PromQL evaluated every 15s and stored as NEW series. Naming convention level:metric:operations.
+# Two reasons to have them: dashboards get cheap, and federation can pull pre-aggregated data only.
+# The federate pipeline in the collector pulls these too, so you can see them in Honeycomb as ordinary gauges.
+groups:
+  - name: bytemart-red
+    rules:
+      - record: job:http_requests:rate5m
+        expr: sum by (job) (rate(http_requests_total[5m]))
+
+      - record: job:http_errors:ratio_rate5m
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+            /
+          sum by (job) (rate(http_requests_total[5m]))
+
+      - record: job:http_request_duration_seconds:p99_5m
+        expr: histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+      - record: job:http_request_duration_seconds:mean_5m
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_sum[5m]))
+            /
+          sum by (job) (rate(http_request_duration_seconds_count[5m]))
+
+  - name: bytemart-infra
+    rules:
+      - record: node:cpu_utilization:ratio_1m
+        expr: 1 - avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[1m]))
+
+      - record: node:filesystem_used:ratio
+        expr: 1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}
+
+      - record: orders:placed:rate5m
+        expr: sum(rate(orders_placed_total[5m]))

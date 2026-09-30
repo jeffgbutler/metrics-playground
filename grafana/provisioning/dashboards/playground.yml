@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: playground
+    folder: Playground
+    type: file
+    allowUiUpdates: true      # you can edit provisioned dashboards, but use "Save as" to keep your own copy:
+    updateIntervalSeconds: 30 # changes to the JSON files on disk win on the next reload
+    options:
+      path: /var/lib/grafana/dashboards

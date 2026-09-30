@@ -1,0 +1,224 @@
+# OpenTelemetry Collector for the metrics playground.
+#
+# Three ways the same Byte Mart metrics reach Honeycomb. Honeycomb stores all metrics in one place (the
+# x-honeycomb-dataset header is ignored for metrics), so every data point is tagged with a resource attribute
+# `collection.method` saying which road it took. Filter or GROUP BY it to compare.
+#
+#   metrics/scrape       prometheus receiver scrapes the simulator targets itself    collection.method = prometheus-scrape
+#                        (independently of Prometheus: two scrapers, same targets)
+#   metrics/federate     prometheus receiver scrapes Prometheus's /federate          collection.method = prometheus-federate
+#                        (Prometheus is the source of truth; the collector re-reads it)
+#   metrics/otlp         the simulator pushes OTLP natively (SDK, semconv names)     collection.method = otlp-push
+#   metrics/hostmetrics  OTel's hostmetrics receiver reading the real Docker host    collection.method = hostmetrics
+#
+# The values come from COLLECTION_METHOD_* in .env, so an experiment (e.g. lab 05's "federate, repaired") can get
+# its own label and be compared side by side with the unmodified data.
+#
+# Turn pipelines on/off in .env: PIPELINE_<NAME>_EXPORTERS=[otlp_http/honeycomb]  or  [nop]   (add `debug` to see
+# the converted OTLP in `docker compose logs otel-collector`). Then: docker compose up -d otel-collector
+#
+# Gotcha: the collector expands ${...} everywhere in this file, so Prometheus relabel back-references must be
+# written $$1 instead of $1.
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679   # http://localhost:55679/debug/pipelinez
+
+receivers:
+  # ---------------------------------------------------------------------------------------------------------------
+  # Path 1: scrape the targets directly. This block is ordinary Prometheus scrape_config syntax, copied from
+  # prometheus/prometheus.yml (minus sample_limit, so the two scrapers behave differently under cardinality).
+  # ---------------------------------------------------------------------------------------------------------------
+  prometheus/scrape:
+    config:
+      global:
+        scrape_interval: 15s
+        scrape_timeout: 10s
+      scrape_configs:
+        - job_name: sim-apps
+          http_sd_configs:
+            - url: http://simulator:8080/sd/apps
+              refresh_interval: 15s
+          relabel_configs: &sim_relabel
+            - source_labels: [__meta_service]
+              target_label: job
+            - source_labels: [__meta_instance]
+              target_label: instance
+            - source_labels: [__meta_node]
+              target_label: node
+            - source_labels: [__meta_team]
+              target_label: team
+            - source_labels: [__meta_runtime]
+              regex: (.+)
+              target_label: runtime
+            - source_labels: [__meta_role]
+              regex: (.+)
+              target_label: role
+        - job_name: sim-infra
+          http_sd_configs:
+            - url: http://simulator:8080/sd/infra
+              refresh_interval: 15s
+          relabel_configs: *sim_relabel
+        - job_name: simulator
+          static_configs:
+            - targets: ["simulator:8080"]
+        - job_name: host-node-exporter
+          static_configs:
+            - targets: ["node-exporter:9100"]
+          relabel_configs:
+            - target_label: instance
+              replacement: docker-host
+        - job_name: cadvisor
+          static_configs:
+            - targets: ["cadvisor:8080"]
+          metric_relabel_configs: &cadvisor_keep
+            # Keep a handful of container metrics, only for real containers, and drop the cgroup-path `id` label.
+            - source_labels: [__name__]
+              regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|memory_usage_bytes|network_receive_bytes_total|network_transmit_bytes_total|spec_memory_limit_bytes)
+              action: keep
+            - source_labels: [name]
+              regex: .+
+              action: keep
+            - regex: id
+              action: labeldrop
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Path 2: read everything back out of Prometheus via federation. honor_labels keeps the original job/instance
+  # instead of replacing them with job="federate", instance="prometheus:9090".
+  # ---------------------------------------------------------------------------------------------------------------
+  prometheus/federate:
+    config:
+      scrape_configs:
+        - job_name: federate
+          scrape_interval: 15s
+          scrape_timeout: 10s
+          honor_labels: true
+          metrics_path: /federate
+          params:
+            # Federation filters server-side: only series matching at least one selector are returned.
+            "match[]":
+              - '{job=~".+", job!~"prometheus|otel-collector|cadvisor"}'   # raw series from the simulator + host
+              - '{job="cadvisor", name!="", __name__=~"container_(cpu_usage_seconds_total|memory_working_set_bytes|memory_usage_bytes|network_receive_bytes_total|network_transmit_bytes_total|spec_memory_limit_bytes)"}'
+              - '{__name__=~"job:.+|node:.+|orders:.+"}'                   # recording rules
+          static_configs:
+            - targets: ["prometheus:9090"]
+          metric_relabel_configs:
+            - regex: id
+              action: labeldrop
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Path 3: native OTLP push from the simulator, and OTel's own host metrics for the real Docker host.
+  # ---------------------------------------------------------------------------------------------------------------
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+  host_metrics:
+    collection_interval: 15s
+    root_path: /hostfs
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization: {enabled: true}
+      load: {}
+      memory:
+        metrics:
+          system.memory.utilization: {enabled: true}
+      filesystem:
+        include_fs_types:
+          fs_types: [ext4, xfs, btrfs]
+          match_type: strict
+        metrics:
+          system.filesystem.utilization: {enabled: true}
+      network:
+        include:
+          interfaces: ["eth0"]
+          match_type: strict
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  # Tag every point with the road it took. This is the attribute to filter / GROUP BY in Honeycomb.
+  resource/scrape:
+    attributes:
+      - {key: collection.method, value: "${env:COLLECTION_METHOD_SCRAPE:-prometheus-scrape}", action: upsert}
+  resource/federate:
+    attributes:
+      - {key: collection.method, value: "${env:COLLECTION_METHOD_FEDERATE:-prometheus-federate}", action: upsert}
+  resource/otlp:
+    attributes:
+      - {key: collection.method, value: "${env:COLLECTION_METHOD_OTLP:-otlp-push}", action: upsert}
+  resource/hostmetrics:
+    attributes:
+      - {key: collection.method, value: hostmetrics, action: upsert}
+  resource/hostname:
+    attributes:
+      - {key: host.name, value: docker-host, action: upsert}
+      - {key: service.name, value: docker-host, action: upsert}
+  # Optional repair for the federate path (see labs/05-three-paths.md). /federate exposes every series as
+  # `untyped`, so the receiver turns counters into gauges. This puts the type back for names that follow the
+  # `_total` convention. Enable with PIPELINE_FEDERATE_PROCESSORS in .env. It cannot rebuild histograms.
+  transform/federate_repair:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - convert_gauge_to_sum("cumulative", true) where IsMatch(metric.name, ".*_total$")
+  # Optional escape hatch. With everything in one metrics store, http_requests_total arrives as a counter from
+  # the scrape path and as a gauge from the federate path: one name, two types. If Honeycomb shows the federate
+  # data oddly (or not at all), add this processor to PIPELINE_FEDERATE_PROCESSORS so federated metrics get their
+  # own names (federate.http_requests_total, ...). Off by default so the same query works on every path.
+  transform/federate_prefix:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - set(metric.name, Concat(["federate.", metric.name], ""))
+  batch:
+    send_batch_size: 2000
+    timeout: 5s
+
+exporters:
+  otlp_http/honeycomb:
+    endpoint: ${env:HONEYCOMB_API_ENDPOINT:-https://api.honeycomb.io}
+    headers:
+      x-honeycomb-team: ${env:HONEYCOMB_API_KEY}
+  debug:
+    verbosity: ${env:COLLECTOR_DEBUG_VERBOSITY:-basic}
+  nop: {}
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    metrics/scrape:
+      receivers: [prometheus/scrape]
+      processors: [memory_limiter, resource/scrape, batch]
+      exporters: ${env:PIPELINE_SCRAPE_EXPORTERS:-[otlp_http/honeycomb]}
+    metrics/federate:
+      receivers: [prometheus/federate]
+      processors: ${env:PIPELINE_FEDERATE_PROCESSORS:-[memory_limiter, resource/federate, batch]}
+      exporters: ${env:PIPELINE_FEDERATE_EXPORTERS:-[otlp_http/honeycomb]}
+    metrics/otlp:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/otlp, batch]
+      exporters: ${env:PIPELINE_OTLP_EXPORTERS:-[otlp_http/honeycomb]}
+    metrics/hostmetrics:
+      receivers: [host_metrics]
+      processors: [memory_limiter, resource/hostname, resource/hostmetrics, batch]
+      exporters: ${env:PIPELINE_HOSTMETRICS_EXPORTERS:-[otlp_http/honeycomb]}
+  telemetry:
+    metrics:
+      level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888

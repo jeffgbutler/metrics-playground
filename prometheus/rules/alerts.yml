@@ -1,0 +1,57 @@
+# Alerting rules. There is no Alertmanager in the playground: watch them go pending -> firing at
+# http://localhost:9090/alerts, or query the synthetic ALERTS series. Note `for:` - the alert must be true
+# on every evaluation for that long before it fires.
+groups:
+  - name: bytemart-alerts
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $labels.job }}/{{ $labels.instance }} has not answered a scrape for 1m"
+
+      - alert: HighErrorRate
+        expr: job:http_errors:ratio_rate5m > 0.05
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $labels.job }} 5xx ratio is {{ $value | humanizePercentage }}"
+
+      - alert: SlowP99
+        expr: job:http_request_duration_seconds:p99_5m > 1
+        for: 5m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $labels.job }} p99 is {{ $value | humanizeDuration }}"
+
+      - alert: DiskWillFillWithin1h
+        expr: predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[15m], 3600) < 0
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $labels.node }} root filesystem will be full within the hour"
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 30s
+        labels: {severity: page}
+        annotations:
+          summary: "exporter is up but cannot reach postgres on {{ $labels.instance }}"
+
+      - alert: DBPoolStarved
+        expr: db_pool_connections{state="pending"} > 0
+        for: 2m
+        labels: {severity: ticket}
+
+      - alert: ConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag) > 300
+        for: 3m
+        labels: {severity: ticket}
+
+      # The classic trap: this alert can only fire while the series exists. When the route is retired
+      # (series_disappear) the expression returns nothing and the alert silently resolves.
+      - alert: LegacyEndpointErrors
+        expr: sum(rate(http_requests_total{route="/api/v1/legacy-products", status=~"5.."}[5m])) > 0
+        for: 1m
+        labels: {severity: ticket}
